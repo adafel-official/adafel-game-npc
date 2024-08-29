@@ -5,10 +5,9 @@ pragma solidity ^0.8.9;
 // import "hardhat/console.sol";
 import "./interfaces/IOracle.sol";
 
-// @title CipherAgent
+// @title OracleAgent
 // @notice This contract handles chat interactions and integrates with teeML oracle for LLM and knowledge base queries.
-contract CipherAgent {
-
+contract OracleAgent {
     struct Message {
         string role;
         string content;
@@ -29,10 +28,10 @@ contract CipherAgent {
 
     // @notice Address of the contract owner
     address private owner;
-    
+
     // @notice Address of the oracle contract
     address public oracleAddress;
-    
+
     // @notice CID of the knowledge base
     string public knowledgeBase;
 
@@ -50,17 +49,17 @@ contract CipherAgent {
         chatRunsCount = 0;
 
         config = IOracle.GroqRequest({
-            model : "llama-3.1-8b-instant",
-            frequencyPenalty : 21, // > 20 for null
-            logitBias : "", // empty str for null
-            maxTokens : 1000, // 0 for null
-            presencePenalty : 21, // > 20 for null
-            responseFormat : "{\"type\":\"text\"}",
-            seed : 0, // null
-            stop : "", // null
-            temperature : 10, // Example temperature (scaled up, 10 means 1.0), > 20 means null
-            topP : 101, // Percentage 0-100, > 100 means null
-            user : "" // null
+            model: "llama-3.1-8b-instant",
+            frequencyPenalty: 21, // > 20 for null
+            logitBias: "", // empty str for null
+            maxTokens: 1000, // 0 for null
+            presencePenalty: 21, // > 20 for null
+            responseFormat: '{"type":"text"}',
+            seed: 0, // null
+            stop: "", // null
+            temperature: 10, // Example temperature (scaled up, 10 means 1.0), > 20 means null
+            topP: 101, // Percentage 0-100, > 100 means null
+            user: "" // null
         });
     }
 
@@ -83,13 +82,11 @@ contract CipherAgent {
         emit OracleAddressUpdated(newOracleAddress);
     }
 
-    function RunCipherNPC(
-		
-    ) public returns (uint i) {
-      string memory query = "You are an NPC whose name is Vera 'Cipher' Kline. \n Renowned NFT artist Elysia Solis has been found dead under suspicious circumstances, her final work left unfinished. \n Characteristic: A brilliant but reclusive hacker, known for her expertise in smart contract vulnerabilities. \n Vera has a history with Elysia, having collaborated on her earlier works before a falling out over creative differences. Veras deep knowledge of blockchain security makes her capable of covering her tracks, but her pride in her skills could also be her downfall. \n You are suspect and reluctant to discuss or say what you saw. You will try your best to cover up for any kind of suspicion and not get caught. \n Task: \n You will talk like the NPC character AT ALL TIMES. You will not volunteer information easily. You don't want to talk. Keep your response concise within 50 words.";
-      return startChat(query);
+    function RunOracleNPC() public returns (uint i) {
+        string
+            memory query = "You are an NPC whose name is Ava 'Oracle' Donovan. \n Renowned NFT artist Elysia Solis has been found dead under suspicious circumstances, her final work left unfinished. \n Characteristic: A former blockchain journalist turned investigative reporter, Ava was working on an expose about the dark side of the NFT world. She had recently discovered some disturbing truths about Elysia's past dealings and was planning to confront her. Ava is driven by a quest for truth, but her methods are often aggressive, and she has a history of crossing ethical lines to get her story. \n You are suspect and you always distract the investigator with some random news of crypto and start talking about it. \n You try you best to change the topic and not get caught. \n Task: \n You will act like the NPC character AT ALL TIMES. Keep your response concise within 50 words";
+        return startChat(query);
     }
-
 
     // @notice Starts a new chat
     // @param message The initial message to start the chat with
@@ -123,15 +120,23 @@ contract CipherAgent {
     ) public onlyOracle {
         ChatRun storage run = chatRuns[runId];
         require(
-            keccak256(abi.encodePacked(run.messages[run.messagesCount - 1].role)) == keccak256(abi.encodePacked("user")),
+            keccak256(
+                abi.encodePacked(run.messages[run.messagesCount - 1].role)
+            ) == keccak256(abi.encodePacked("user")),
             "No message to respond to"
         );
         if (!compareStrings(errorMessage, "")) {
-            IOracle.Message memory newMessage = createTextMessage("assistant", errorMessage);
+            IOracle.Message memory newMessage = createTextMessage(
+                "assistant",
+                errorMessage
+            );
             run.messages.push(newMessage);
             run.messagesCount++;
         } else {
-            IOracle.Message memory newMessage = createTextMessage("assistant", response.content);
+            IOracle.Message memory newMessage = createTextMessage(
+                "assistant",
+                response.content
+            );
             run.messages.push(newMessage);
             run.messagesCount++;
         }
@@ -143,12 +148,12 @@ contract CipherAgent {
     function addMessage(string memory message, uint runId) public {
         ChatRun storage run = chatRuns[runId];
         require(
-            keccak256(abi.encodePacked(run.messages[run.messagesCount - 1].role)) == keccak256(abi.encodePacked("assistant")),
+            keccak256(
+                abi.encodePacked(run.messages[run.messagesCount - 1].role)
+            ) == keccak256(abi.encodePacked("assistant")),
             "No response to previous message"
         );
-        require(
-            run.owner == msg.sender, "Only chat owner can add messages"
-        );
+        require(run.owner == msg.sender, "Only chat owner can add messages");
 
         IOracle.Message memory newMessage = createTextMessage("user", message);
         run.messages.push(newMessage);
@@ -161,7 +166,9 @@ contract CipherAgent {
     // @param chatId The ID of the chat run
     // @return An array of messages
     // @dev Called by teeML oracle
-    function getMessageHistory(uint chatId) public view returns (IOracle.Message[] memory) {
+    function getMessageHistory(
+        uint chatId
+    ) public view returns (IOracle.Message[] memory) {
         return chatRuns[chatId].messages;
     }
 
@@ -169,7 +176,9 @@ contract CipherAgent {
     // @param chatId The ID of the chat run
     // @return An array of message roles
     // @dev Called by teeML oracle
-    function getMessageHistoryRoles(uint chatId) public view returns (string[] memory) {
+    function getMessageHistoryRoles(
+        uint chatId
+    ) public view returns (string[] memory) {
         string[] memory roles = new string[](chatRuns[chatId].messages.length);
         for (uint i = 0; i < chatRuns[chatId].messages.length; i++) {
             roles[i] = chatRuns[chatId].messages[i].role;
@@ -181,7 +190,10 @@ contract CipherAgent {
     // @param role The role of the message
     // @param content The content of the message
     // @return The created message
-    function createTextMessage(string memory role, string memory content) private pure returns (IOracle.Message memory) {
+    function createTextMessage(
+        string memory role,
+        string memory content
+    ) private pure returns (IOracle.Message memory) {
         IOracle.Message memory newMessage = IOracle.Message({
             role: role,
             content: new IOracle.Content[](1)
@@ -195,7 +207,11 @@ contract CipherAgent {
     // @param a The first string
     // @param b The second string
     // @return True if the strings are equal, false otherwise
-    function compareStrings(string memory a, string memory b) private pure returns (bool) {
-        return (keccak256(abi.encodePacked((a))) == keccak256(abi.encodePacked((b))));
+    function compareStrings(
+        string memory a,
+        string memory b
+    ) private pure returns (bool) {
+        return (keccak256(abi.encodePacked((a))) ==
+            keccak256(abi.encodePacked((b))));
     }
 }
