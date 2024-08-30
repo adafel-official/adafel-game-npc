@@ -6,6 +6,7 @@ import "./tasks/whitelist";
 import "./tasks/deploy";
 import "./tasks/e2e";
 import "./tasks/functions";
+import "./tasks/deployPrediction";
 
 require("dotenv").config();
 
